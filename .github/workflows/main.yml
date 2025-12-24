@@ -62,4 +62,4 @@ jobs:
       with:
         name: android-build
         path: |
-          target/aarch64-linux-android/release/libprpr.so
+          target/aarch64-linux-android/release/libprpr_client.so

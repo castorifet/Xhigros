@@ -40,7 +40,6 @@ impl SettingsPage {
         let cali = audio.create_music(
             AudioClip::new(load_file("cali.ogg").await?)?,
             MusicParams {
-                loop_: true,
                 amplifier: 0.7,
                 ..Default::default()
             },
@@ -195,8 +194,31 @@ impl Page for SettingsPage {
                 ui.dy(r.h + s);
                 let r = ui.slider(tl!("player-rks"), 1.0..17.0, 0.01, &mut config.player_rks, Some(0.45));
                 ui.dy(r.h + s);
+                    // 顏色
+    ui.text(tl!("watermark-color")).size(0.4).draw();
+    ui.dy(0.04);
+
+    let mut c = config.watermark_color;
+
+    ui.slider("R", 0.0..1.0, 0.01, &mut c[0], Some(0.25));
+    ui.dy(0.06);
+    ui.slider("G", 0.0..1.0, 0.01, &mut c[1], Some(0.25));
+    ui.dy(0.06);
+    ui.slider("B", 0.0..1.0, 0.01, &mut c[2], Some(0.25));
+    ui.dy(0.06);
+    ui.slider("A", 0.0..1.0, 0.01, &mut c[3], Some(0.25));
+
+    config.watermark_color = c;
+
+            ui.dy(0.06);
             });
-            ui.dx(0.62);
+            // ===== Watermark Column =====
+ui.scope(|ui| {
+    ui.dx(0.38);   // 水平位置（在中偏右）
+    ui.dy(0.02);   // 往下留點空間
+});
+
+            ui.dx(0.72);
 
             ui.scope(|ui| {
                 let r = ui.slider(tl!("offset"), -0.5..0.5, 0.005, &mut config.offset, None);
@@ -227,6 +249,30 @@ impl Page for SettingsPage {
                     max
                 });
                 ui.dy(dy + s);
+                    // 標題
+    let r = ui.text(tl!("watermark"))
+        .size(0.45)
+        .draw();
+    ui.dy(r.h + 0.02);
+
+    // 文字
+    ui.input(
+        tl!("watermark-text"),
+        &mut config.watermark_text,
+        0.42,
+    );
+    ui.dy(0.06);
+
+    // 大小
+    let r = ui.slider(
+        tl!("watermark-size"),
+        0.15..0.6,
+        0.01,
+        &mut config.watermark_size,
+        None,
+    );
+    ui.dy(r.h + 0.04);
+
 
                 let mut rks = config.challenge_rank as f32;
                 let r = ui.slider(tl!("chal-level"), 0.0..48.0, 1., &mut rks, Some(0.45));
@@ -235,7 +281,7 @@ impl Page for SettingsPage {
             });
 
             ui.scope(|ui| {
-                ui.dx(0.65);
+                ui.dx(0.75);
                 let r = ui.checkbox(tl!("double-click-pause"), &mut config.double_click_to_pause);
                 ui.dy(r.h + s);
                 let r = ui.text(tl!("respack")).size(0.4).anchor(1., 0.).draw();

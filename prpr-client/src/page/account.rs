@@ -189,40 +189,11 @@ impl Page for AccountPage {
             let cx = r.right() / 2.;
             let mut r = Rect::new(0., 0., cx - 0.01, r.h);
             if ui.button("left", r, labels[0].as_ref()) {
-                self.register ^= true;
+                show_error(anyhow::anyhow!("Register feature not avaliable yet!"));
             }
             r.x = cx + 0.01;
             if ui.button("right", r, labels[1].as_ref()) {
-                let mut login = || -> Option<Cow<'static, str>> {
-                    let username = self.username_input.clone();
-                    let password = self.password_input.clone();
-                    if let Some(error) = validate_username(&username) {
-                        return Some(error);
-                    }
-                    if !(6..=26).contains(&password.len()) {
-                        return Some(tl!("pwd-length-req"));
-                    }
-                    if self.register {
-                        let email = self.email_input.clone();
-                        static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$").unwrap());
-                        if !EMAIL_REGEX.is_match(&email) {
-                            return Some(tl!("illegal-email"));
-                        }
-                        self.start("register", async move {
-                            Client::register(&email, &username, &password).await?;
-                            Ok(None)
-                        });
-                    } else {
-                        self.start("login", async move {
-                            let user = Client::login(&username, &password).await?;
-                            Ok(Some(user))
-                        });
-                    }
-                    None
-                };
-                if let Some(err) = login() {
-                    show_message(err);
-                }
+                show_error(anyhow::anyhow!("Login feature not avaliable yet!"));
             }
         } else {
             let cx = 0.2;

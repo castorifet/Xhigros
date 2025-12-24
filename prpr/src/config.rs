@@ -42,6 +42,9 @@ pub struct Config {
     pub speed: f32,
     pub volume_music: f32,
     pub volume_sfx: f32,
+    pub watermark_text: String,
+    pub watermark_color: [f32; 4], // RGBA
+    pub watermark_size: f32,       // UI size
 }
 
 impl Default for Config {
@@ -65,12 +68,15 @@ impl Default for Config {
             offset: 0.,
             res_pack_path: None,
             particle: true,
-            player_name: "Mivik".to_string(),
-            player_rks: 15.,
+            player_name: "XingChenBanYue".to_string(),
+            player_rks: 17.00,
             sample_count: 4,
             speed: 1.,
             volume_music: 1.,
             volume_sfx: 1.,
+            watermark_text: "Xhigros-Preview".to_owned(),
+            watermark_color: [0.6, 0.6, 0.6, 0.6],
+            watermark_size: 0.25,
         }
     }
 }

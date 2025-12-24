@@ -26,7 +26,7 @@ use std::sync::{
     Mutex,
 };
 
-const PAGE_NUM: usize = 6;
+const PAGE_NUM: usize = 5;
 const SIDE_PADDING: f32 = 0.02;
 const CARD_PADDING: f32 = 0.02;
 pub const CHARTS_BAR_HEIGHT: f32 = 0.08;
@@ -56,7 +56,7 @@ pub struct MainScene {
     page_buttons: [RectButton; PAGE_NUM],
     switch_start_time: f32,
     page_from_index: usize,
-
+    fireflybg: SafeTexture,
     shared_state: SharedState,
     pages: [Box<dyn Page>; PAGE_NUM],
 }
@@ -73,6 +73,7 @@ impl MainScene {
             };
         }
         let icon_play = load_tex!("resume.png");
+        let fireflybg = SafeTexture::from(Texture2D::from_image(&load_image("bg.jpg").await?));
         Ok(Self {
             target: None,
             next_scene: None,
@@ -84,7 +85,7 @@ impl MainScene {
             icon_edit: load_tex!("edit.png"),
             icon_delete: load_tex!("delete.png"),
             icon_question: load_tex!("question.png"),
-
+            fireflybg,
             page_scroll: Scroll::new(),
             page_index: 0,
             page_buttons: [RectButton::new(); PAGE_NUM],
@@ -94,7 +95,6 @@ impl MainScene {
             shared_state,
             pages: [
                 Box::new(page::LocalPage::new(icon_play.clone()).await?),
-                Box::new(page::OnlinePage::new(icon_play)),
                 Box::new(page::AccountPage::new()),
                 Box::new(page::MessagePage::new()),
                 Box::new(page::SettingsPage::new().await?),
@@ -245,11 +245,6 @@ impl Scene for MainScene {
                 self.shared_state.charts_local[id as usize].illustration = tex;
             }
         }
-        if let Some(tex) = UPDATE_ONLINE_TEXTURE.lock().unwrap().take() {
-            if let Some((Some(_), id, ..)) = self.shared_state.transit {
-                self.shared_state.charts_online[id as usize].illustration.1 = tex;
-            }
-        }
         self.shared_state.t = tm.now() as _;
         for (id, page) in self.pages.iter_mut().enumerate() {
             page.update(id == self.page_index, &mut self.shared_state)?;
@@ -268,8 +263,36 @@ impl Scene for MainScene {
         let dir = (t * 0.3).sin_cos();
         let dir = (dir.0 * rad, dir.1 * rad);
         let theme = THEMES[get_data().theme];
-        ui.fill_rect(ui.screen_rect(), (Color::from_hex(theme.1), dir, Color::from_hex(theme.2), (-dir.0, -dir.1)));
-        ui.fill_rect(ui.screen_rect(), Color::new(0., 0., 0., 0.3));
+
+let bg_rect: Rect = ui.screen_rect();
+
+
+let bg_path = {
+    let r = ui.screen_rect(); // r 的型別對編譯器來說是「不透明的」
+    let mut builder = Path::builder();
+    builder.add_rectangle(
+        &lm::Box2D::new(
+            lm::point(r.x, r.y),
+            lm::point(r.right(), r.bottom()),
+        ),
+        Winding::Positive,
+    );
+    builder.build()
+};
+
+ui.fill_path(
+    &bg_path,
+    (
+        self.fireflybg.clone(),
+        ui.screen_rect(), // 再取一次，不存變數
+        ScaleType::CropCenter,
+    ),
+);
+
+
+// 3. 用 fill_path 畫貼圖（這個 API 是 public 的）
+        // ui.fill_rect(ui.screen_rect(), (Color::from_hex(theme.1), dir, Color::from_hex(theme.2), (-dir.0, -dir.1)));
+        // ui.fill_rect(ui.screen_rect(), Color::new(0., 0., 0., 0.3));
         ui.scope(|ui| self.ui(ui, tm.now() as _, tm.real_time() as _));
         if let Some((file, id, st, rect, back, public)) = &mut self.shared_state.transit {
             let online = file.is_some();
@@ -281,72 +304,69 @@ impl Scene for MainScene {
             if *back {
                 p = 1. - p;
             }
-            let rect = Rect::new(
-                f32::tween(&rect.x, &-1., p),
-                f32::tween(&rect.y, &-ui.top, p),
-                f32::tween(&rect.w, &2., p),
-                f32::tween(&rect.h, &(ui.top * 2.), p),
-            );
-            let path = {
-                let mut path = Path::builder();
+let rect = Rect::new(
+    f32::tween(&rect.x, &-1., p),
+    f32::tween(&rect.y, &-ui.top, p),
+    f32::tween(&rect.w, &2., p),
+    f32::tween(&rect.h, &(ui.top * 2.), p),
+);
+
+            let shape_path = {
+                let mut builder = Path::builder();
                 let pad = CARD_PADDING * (1. - p);
-                path.add_rounded_rectangle(
-                    &lm::Box2D::new(lm::point(rect.x + pad, rect.y + pad), lm::point(rect.right() - pad, rect.bottom() - pad)),
+                builder.add_rounded_rectangle(
+                    &lm::Box2D::new(
+                        lm::point(rect.x + pad, rect.y + pad),
+                        lm::point(rect.right() - pad, rect.bottom() - pad),
+                    ),
                     &BorderRadii::new(0.01 * (1. - p)),
                     Winding::Positive,
                 );
-                path.build()
+                builder.build()
             };
-            let dst = if online {
-                &mut self.shared_state.charts_online
-            } else {
-                &mut self.shared_state.charts_local
+
+            let dst =  &mut self.shared_state.charts_local;
+            let chart = {
+            &self.shared_state.charts_local[id]
             };
-            let chart = &dst[id];
-            ui.fill_path(&path, (*chart.illustration.1, rect, ScaleType::CropCenter));
-            ui.fill_path(&path, Color::new(0., 0., 0., 0.55));
+
+            ui.fill_path(&shape_path, (*chart.illustration.1, rect, ScaleType::CropCenter));
+            ui.fill_path(&shape_path, Color::new(0., 0., 0., 0.55));
+            let chart_path: &str = &chart.path;
             if *back && p <= 0. {
                 if SHOULD_DELETE.fetch_and(false, Ordering::SeqCst) {
-                    let err: Result<_> = (|| {
-                        let id = if online {
-                            let path = format!("download/{}", self.shared_state.charts_online[id].info.id.as_ref().unwrap());
-                            self.shared_state
-                                .charts_local
-                                .iter()
-                                .position(|it| it.path == path)
-                                .ok_or_else(|| tl!(err "chart-not-found"))?
-                        } else {
-                            id
-                        };
-                        let chart = &self.shared_state.charts_local[id];
-                        let path = format!("{}/{}", dir::charts()?, chart.path);
-                        let path = std::path::Path::new(&path);
-                        if path.is_file() {
-                            std::fs::remove_file(path)?;
-                        } else {
-                            std::fs::remove_dir_all(path)?;
-                        }
-                        get_data_mut().charts.remove(get_data().find_chart(chart).unwrap());
-                        save_data()?;
-                        self.shared_state.charts_local.remove(id);
-                        Ok(())
-                    })();
-                    if let Err(err) = err {
-                        show_error(err.context(tl!("delete-failed")));
-                    } else {
-                        show_message(tl!("delete-success")).ok();
-                    }
+                let delete_result: Result<()> = (|| {
+                let chart = &self.shared_state.charts_local[id];
+                let path = format!("{}/{}", dir::charts()?, chart.path);
+                let path = std::path::Path::new(&path);
+
+                if path.is_file() {
+                    std::fs::remove_file(path)?;
+                } else {
+                    std::fs::remove_dir_all(path)?;
+                }
+
+                let index = get_data().find_chart(chart).unwrap();
+                get_data_mut().charts.remove(index);
+                save_data()?;
+                Ok(())
+                })();
+
+                if let Err(err) = delete_result {
+                show_error(err.context(tl!("delete-failed")));
+                } else {
+                self.shared_state.charts_local.remove(id); // ✅ 只在這裡 mutable borrow
+                show_message(tl!("delete-success")).ok();
+                }
+
                 }
                 self.shared_state.transit = None;
             } else if !*back && p >= 1. {
                 *back = true;
                 self.next_scene = if online {
-                    let path = format!("download/{}", self.shared_state.charts_online[id].info.id.as_ref().unwrap());
-                    if let Some(index) = self.shared_state.charts_local.iter().position(|it| it.path == path) {
-                        self.shared_state.charts_local[index].illustration = self.shared_state.charts_online[id].illustration.clone();
+                    if let Some(index) = self.shared_state.charts_local.iter().position(|it| it.path == chart_path) {
                         self.song_scene(&self.shared_state.charts_local[index], None, false, public)
                     } else {
-                        let chart = &self.shared_state.charts_online[id];
                         let file = if chart.illustration.0 == chart.illustration.1 {
                             file.clone()
                         } else {

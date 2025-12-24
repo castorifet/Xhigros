@@ -3,7 +3,7 @@ use crate::{
     ui::{source_of_image, Matrix, ScaleType},
 };
 use macroquad::prelude::*;
-
+use crate::ext::SafeTexture;
 pub trait Shading {
     fn new_vertex(&self, mat: &Matrix, p: &Point) -> Vertex;
     fn texture(&self) -> Option<Texture2D>;
@@ -162,5 +162,34 @@ impl IntoShading for (Texture2D, Rect, ScaleType, Color) {
             texture: (tex, source, rect),
             color,
         }
+    }
+}
+
+impl IntoShading for (SafeTexture, Rect) {
+    type Target = TextureShading;
+
+    #[inline]
+    fn into_shading(self) -> Self::Target {
+        let (safe, rect) = self;
+        (safe.into_inner(), rect).into_shading()
+    }
+}
+
+impl IntoShading for (SafeTexture, Rect, ScaleType) {
+    type Target = TextureShading;
+
+    #[inline]
+    fn into_shading(self) -> Self::Target {
+        let (safe, rect, scale_type) = self;
+        (safe.into_inner(), rect, scale_type).into_shading()
+    }
+}
+
+impl IntoShading for (SafeTexture, Rect, ScaleType, Color) {
+    type Target = TextureShading;
+
+    fn into_shading(self) -> Self::Target {
+        let (safe, rect, scale_type, color) = self;
+        (safe.into_inner(), rect, scale_type, color).into_shading()
     }
 }

@@ -35,3 +35,7 @@ reset-all = 恢复默认设定
 confirm-reset = 确定？
 reset-all-done = 设定恢复成功
 save-failed = 保存设定失败
+watermark = Watermark
+watermark-text = Watermark Text
+watermark-color = Watermark Color
+watermark-size = Watermark Size

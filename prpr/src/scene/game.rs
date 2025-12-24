@@ -344,7 +344,7 @@ impl GameScene {
                     .bottom()
             });
             self.chart.with_element(ui, res, UIElement::Combo, |ui, color, scale| {
-                ui.text(if res.config.autoplay { "AUTOPLAY" } else { "COMBO" })
+                ui.text(if res.config.autoplay { "AUTOPLAY" } else { "Cyrene" })
                     .pos(0., btm + 0.01)
                     .anchor(0.5, 0.)
                     .size(0.4)
@@ -389,6 +389,51 @@ impl GameScene {
                 ui.fill_rect(Rect::new(-1. + dest - hw, top, hw * 2., height), Color { a: color.a * c.a, ..color });
             });
         });
+        let counts = self.judge.counts();
+
+let perfect = counts[0];
+let shiny = self.judge.shiny_perfect();
+let good = counts[1];
+let bad = counts[2];
+let miss = counts[3];
+
+let base_x = 0.96;
+let mut y = 0.15;
+let dy = 0.045;
+
+let color = Color::new(0.65, 0.65, 0.65, self.res.alpha);
+let size = 0.32;
+
+ui.text(format!("Perfect {} +{}", perfect, shiny))
+    .pos(base_x, y)
+    .anchor(1.0, 0.5)
+    .size(size)
+    .color(color)
+    .draw();
+y -= dy;
+
+ui.text(format!("Good {}", good))
+    .pos(base_x, y)
+    .anchor(1.0, 0.5)
+    .size(size)
+    .color(color)
+    .draw();
+y -= dy;
+
+ui.text(format!("Bad {}", bad))
+    .pos(base_x, y)
+    .anchor(1.0, 0.5)
+    .size(size)
+    .color(color)
+    .draw();
+y -= dy;
+
+ui.text(format!("Miss {}", miss))
+    .pos(base_x, y)
+    .anchor(1.0, 0.5)
+    .size(size)
+    .color(color)
+    .draw();
         Ok(())
     }
 
@@ -952,6 +997,23 @@ impl Scene for GameScene {
         }
         self.ui(ui, tm)?;
         self.overlay_ui(ui, tm)?;
+// --- Watermark ---
+let cfg = &self.res.config;
+
+if !cfg.watermark_text.is_empty() {
+    let h = 1. / self.res.aspect_ratio;
+    let [r, g, b, a] = cfg.watermark_color;
+
+    ui.scope(|ui| {
+        ui.text(&cfg.watermark_text)
+            .pos(0., h - 0.02)      // 底部
+            .anchor(0.5, 1.0)       // 底部置中
+            .size(cfg.watermark_size)
+            .color(Color::new(r, g, b, a * self.res.alpha))
+            .draw();
+    });
+}
+
 
         if self.mode == GameMode::TweakOffset {
             push_camera_state();

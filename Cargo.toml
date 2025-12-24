@@ -5,6 +5,8 @@ members = [
 	"prpr-client-main",
 	"prpr-player",
 	"prpr-render",
+              "prpr-miniquad",
+              "prpr-macroquad",
 ]
 resolver = "2"
 
@@ -14,3 +16,9 @@ strip = true
 
 [profile.dev.package."*"]
 opt-level = 2
+[workspace.dependencies]
+nalgebra = "=0.32.3"
+moxcms = "=0.5.0"
+[patch.crates-io]
+nalgebra = { git = "https://github.com/dimforge/nalgebra.git", tag = "v0.32.3" }
+nalgebra-macros = { git = "https://github.com/dimforge/nalgebra.git", tag = "v0.32.3", package = "nalgebra-macros" }

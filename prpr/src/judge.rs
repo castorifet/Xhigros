@@ -15,7 +15,7 @@ use std::{
     collections::{HashMap, VecDeque},
     num::FpCategory,
 };
-
+pub const LIMIT_SHINYPERFECT: f32 = 0.04;
 pub const FLICK_SPEED_THRESHOLD: f32 = 1.8;
 pub const LIMIT_PERFECT: f32 = 0.08;
 pub const LIMIT_GOOD: f32 = 0.16;
@@ -153,8 +153,10 @@ pub(crate) struct JudgeInner {
     combo: u32,
     max_combo: u32,
     counts: [u32; 4],
+    shiny_perfect: u32,
     num_of_notes: u32,
 }
+
 
 #[cfg(not(feature = "closed"))]
 impl JudgeInner {
@@ -165,6 +167,7 @@ impl JudgeInner {
             combo: 0,
             max_combo: 0,
             counts: [0; 4],
+            shiny_perfect: 0,
             num_of_notes,
         }
     }
@@ -173,6 +176,10 @@ impl JudgeInner {
         use Judgement::*;
         if let Some(diff) = diff {
             self.diffs.push(diff);
+
+        if matches!(what, Perfect) && diff.abs() <= LIMIT_SHINYPERFECT {
+            self.shiny_perfect += 1;
+        }
         }
         self.counts[what as usize] += 1;
         match what {
@@ -192,6 +199,7 @@ impl JudgeInner {
         self.combo = 0;
         self.max_combo = 0;
         self.counts = [0; 4];
+        self.shiny_perfect = 0;
         self.diffs.clear();
     }
 
@@ -199,15 +207,28 @@ impl JudgeInner {
         (self.counts[0] as f64 + self.counts[1] as f64 * 0.65) / self.num_of_notes as f64
     }
 
-    pub fn score(&self) -> u32 {
-        const TOTAL: u32 = 1000000;
-        if self.counts[0] == self.num_of_notes {
-            TOTAL
-        } else {
-            let score = (0.9 * self.accuracy() + self.max_combo as f64 / self.num_of_notes as f64 * 0.1) * TOTAL as f64;
-            score.round() as u32
-        }
-    }
+pub fn score(&self) -> u32 {
+    let n = self.num_of_notes as f64;
+
+    let base_total = 1_000_000.0;
+    let shiny_bonus = self.num_of_notes as f64;
+    let total_max = base_total + shiny_bonus;
+
+    let base_per_note = base_total / n;
+    let shiny_per_note = total_max / n;
+
+    let perfect = self.counts[Judgement::Perfect as usize] as f64;
+    let good = self.counts[Judgement::Good as usize] as f64;
+    let shiny = self.shiny_perfect as f64;
+
+    let score =
+        shiny * shiny_per_note +
+        (perfect - shiny) * base_per_note +
+        good * base_per_note * 0.65;
+
+    score.round() as u32
+}
+
 
     pub fn result(&self) -> PlayResult {
         let early = self.diffs.iter().filter(|it| **it < 0.).count() as u32;
@@ -217,6 +238,7 @@ impl JudgeInner {
             max_combo: self.max_combo,
             num_of_notes: self.num_of_notes,
             counts: self.counts,
+            shiny_perfect: self.shiny_perfect,
             early,
             late: self.diffs.len() as u32 - early,
         }
@@ -295,7 +317,10 @@ impl Judge {
     pub fn score(&self) -> u32 {
         self.inner.score()
     }
-
+    #[inline]
+    pub fn shiny_perfect(&self) -> u32 {
+        self.inner.shiny_perfect
+    }
     pub(crate) fn on_new_frame() {
         let mut handler = Handler(Vec::new(), 0, 0);
         repeat_all_miniquad_input(&mut handler, *SUBSCRIBER_ID);
@@ -667,14 +692,15 @@ impl Judge {
             let line = &chart.lines[line_id];
             let note = &line.notes[id as usize];
             let line_tr = line.now_transform(res, &chart.lines);
-            self.commit(
-                judgement,
-                if matches!(judgement, Judgement::Good | Judgement::Bad) {
-                    Some(diff.unwrap_or((t - note.time) / spd))
-                } else {
-                    None
-                },
-            );
+let real_diff = diff.unwrap_or((t - note.time) / spd);
+
+self.commit(
+    judgement,
+    match judgement {
+        Judgement::Perfect | Judgement::Good | Judgement::Bad => Some(real_diff),
+        Judgement::Miss => None,
+    },
+);
             if matches!(note.kind, NoteKind::Hold { .. }) {
                 continue;
             }
@@ -881,5 +907,6 @@ pub struct PlayResult {
     pub num_of_notes: u32,
     pub counts: [u32; 4],
     pub early: u32,
+    pub shiny_perfect: u32, 
     pub late: u32,
 }

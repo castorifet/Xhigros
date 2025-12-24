@@ -73,7 +73,6 @@ impl EndingScene {
             bgm,
             MusicParams {
                 amplifier: config.volume_music,
-                loop_: true,
                 ..Default::default()
             },
         )?;
@@ -283,13 +282,64 @@ impl Scene for EndingScene {
         let d = r.h / 16.;
         let s1 = Rect::new(main.x - d * 4. * slope, main.bottom() + d, main.w - d * 5. * slope, d * 3.);
         draw_parallelogram(s1, None, c, true);
-        {
-            let dy = 0.025;
-            let r = draw_text_aligned(ui, "Max Combo", s1.x + dx, s1.bottom() - dy, (0., 1.), 0.34, WHITE);
-            draw_text_aligned(ui, &res.max_combo.to_string(), r.x, r.y - 0.01, (0., 1.), 0.7, WHITE);
-            let r = draw_text_aligned(ui, "Accuracy", s1.right() - dx, s1.bottom() - dy, (1., 1.), 0.34, WHITE);
-            draw_text_aligned(ui, &format!("{:.2}%", res.accuracy * 100.), r.right(), r.y - 0.01, (1., 1.), 0.7, WHITE);
-        }
+{
+    let dy = 0.025;
+
+    // Max Combo
+    let r = draw_text_aligned(
+        ui,
+        "Max Combo",
+        s1.x + dx,
+        s1.bottom() - dy,
+        (0., 1.),
+        0.34,
+        WHITE,
+    );
+
+    let combo_text = if res.shiny_perfect > 0 {
+        format!("{} +{}", res.max_combo, res.shiny_perfect)
+    } else {
+        res.max_combo.to_string()
+    };
+
+    draw_text_aligned(
+        ui,
+        &combo_text,
+        r.x,
+        r.y - 0.01,
+        (0., 1.),
+        0.7,
+        WHITE,
+    );
+
+    // Accuracy
+    let r = draw_text_aligned(
+        ui,
+        "Accuracy",
+        s1.right() - dx,
+        s1.bottom() - dy,
+        (1., 1.),
+        0.34,
+        WHITE,
+    );
+
+    let acc_text = if res.shiny_perfect > 0 {
+        format!("{:.2}% +{}", res.accuracy * 100., res.shiny_perfect)
+    } else {
+        format!("{:.2}%", res.accuracy * 100.)
+    };
+
+    draw_text_aligned(
+        ui,
+        &acc_text,
+        r.right(),
+        r.y - 0.01,
+        (1., 1.),
+        0.7,
+        WHITE,
+    );
+}
+
         gl.pop_model_matrix();
 
         tran(gl, (1. - ran(now, 0.5, 1.7)).powi(3));

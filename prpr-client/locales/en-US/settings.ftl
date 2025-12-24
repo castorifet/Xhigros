@@ -35,3 +35,7 @@ reset-all = Restore default settings
 confirm-reset = Sure?
 reset-all-done = Settings are restored
 save-failed = Failed to save config
+watermark = Watermark
+watermark-text = Watermark Text
+watermark-color = Watermark Color
+watermark-size = Watermark Size

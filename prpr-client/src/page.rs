@@ -10,9 +10,6 @@ pub use local::LocalPage;
 mod message;
 pub use message::MessagePage;
 
-mod online;
-pub use online::OnlinePage;
-
 mod settings;
 pub use settings::SettingsPage;
 
@@ -129,7 +126,6 @@ pub struct SharedState {
     pub tex: SafeTexture,
 
     pub charts_local: Vec<ChartItem>,
-    pub charts_online: Vec<ChartItem>,
 
     pub transit: Option<(Option<LCFile>, u32, f32, Rect, bool, bool)>, // online, id, start_time, rect, delete, public
 }
@@ -144,7 +140,6 @@ impl SharedState {
             tex,
 
             charts_local,
-            charts_online: Vec::new(),
 
             transit: None,
         })

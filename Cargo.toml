@@ -4,7 +4,6 @@ members = [
 	"prpr-client",
 	"prpr-client-main",
 	"prpr-player",
-	"prpr-render",
               "prpr-miniquad",
               "prpr-macroquad",
 ]
@@ -13,7 +12,6 @@ resolver = "2"
 [profile.release]
 opt-level = 2
 strip = true
-
 [profile.dev.package."*"]
 opt-level = 2
 [workspace.dependencies]
@@ -22,3 +20,6 @@ moxcms = "=0.5.0"
 [patch.crates-io]
 nalgebra = { git = "https://github.com/dimforge/nalgebra.git", tag = "v0.32.3" }
 nalgebra-macros = { git = "https://github.com/dimforge/nalgebra.git", tag = "v0.32.3", package = "nalgebra-macros" }
+oboe = { git = "https://github.com/katyo/oboe-rs.git", rev = "7ea2b9b3bc9cdfa9ed4cbfeafdcafb47b3fac4e7" }
+oboe-sys = { git = "https://github.com/katyo/oboe-rs.git", rev = "7ea2b9b3bc9cdfa9ed4cbfeafdcafb47b3fac4e7" }
+cpal = { git = "https://github.com/RustAudio/cpal", default-features = false }
